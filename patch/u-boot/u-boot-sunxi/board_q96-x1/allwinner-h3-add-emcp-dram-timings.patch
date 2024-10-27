@@ -1,0 +1,134 @@
+From 016469d7a97921437a06a1652d3d30b0494b28be Mon Sep 17 00:00:00 2001
+From: Lucas Grunenberg <lucas.grunenberg@gmail.com>
+Date: Tue, 9 Jul 2024 09:33:04 +0200
+Subject: [PATCH] Add eMCP DRAM timings
+
+---
+ arch/arm/mach-sunxi/Kconfig                   |  7 ++
+ arch/arm/mach-sunxi/dram_timings/Makefile     |  1 +
+ .../arm/mach-sunxi/dram_timings/lpddr3_emcp.c | 83 +++++++++++++++++++
+ 3 files changed, 92 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm/mach-sunxi/dram_timings/lpddr3_emcp.c
+
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index a4a8d8e944..77029216d9 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -490,6 +490,13 @@ config SUNXI_DRAM_LPDDR3_STOCK
+ 	This option is the LPDDR3 timing used by the stock boot0 by
+ 	Allwinner.
+ 
++config SUNXI_DRAM_LPDDR3_EMCP
++	bool "LPDDR3 with Allwinner eMCP configuration"
++	select SUNXI_DRAM_LPDDR3
++	---help---
++	This option is the LPDDR3 timing used by the eMCP compatible
++	boot0 by Allwinner.
++
+ config SUNXI_DRAM_H6_LPDDR3
+ 	bool "LPDDR3 DRAM chips on the H6 DRAM controller"
+ 	select SUNXI_DRAM_LPDDR3
+
+diff --git a/arch/arm/mach-sunxi/dram_timings/Makefile b/arch/arm/mach-sunxi/dram_timings/Makefile
+index 5f20341924..c2abcbb5a5 100644
+--- a/arch/arm/mach-sunxi/dram_timings/Makefile
++++ b/arch/arm/mach-sunxi/dram_timings/Makefile
+@@ -1,5 +1,6 @@
+ obj-$(CONFIG_SUNXI_DRAM_DDR3_1333)	+= ddr3_1333.o
+ obj-$(CONFIG_SUNXI_DRAM_LPDDR3_STOCK)	+= lpddr3_stock.o
++obj-$(CONFIG_SUNXI_DRAM_LPDDR3_EMCP)	+= lpddr3_emcp.o
+ obj-$(CONFIG_SUNXI_DRAM_DDR2_V3S)	+= ddr2_v3s.o
+ obj-$(CONFIG_SUNXI_DRAM_H6_LPDDR3)	+= h6_lpddr3.o
+ obj-$(CONFIG_SUNXI_DRAM_H6_DDR3_1333)	+= h6_ddr3_1333.o
+diff --git a/arch/arm/mach-sunxi/dram_timings/lpddr3_emcp.c b/arch/arm/mach-sunxi/dram_timings/lpddr3_emcp.c
+new file mode 100644
+index 0000000000..00b7cb1a2a
+--- /dev/null
++++ b/arch/arm/mach-sunxi/dram_timings/lpddr3_emcp.c
+@@ -0,0 +1,83 @@
++#include <common.h>
++#include <asm/arch/dram.h>
++#include <asm/arch/cpu.h>
++
++void mctl_set_timing_params(uint16_t socid, struct dram_para *para)
++{
++	struct sunxi_mctl_ctl_reg * const mctl_ctl =
++			(struct sunxi_mctl_ctl_reg *)SUNXI_DRAM_CTL0_BASE;
++
++	u8 tccd		= 4;
++	u8 tfaw		= max(ns_to_t(50), 8);
++	u8 trrd		= max(ns_to_t(10), 2);
++	u8 trcd		= max(ns_to_t(24), 3);
++	u8 trc		= ns_to_t(70);
++	u8 txp		= max(ns_to_t(8), 2);
++	u8 twtr		= max(ns_to_t(8), 2);
++	u8 trtp		= max(ns_to_t(8), 4);
++	u8 twr		= max(ns_to_t(15), 3);
++	u8 trp		= max(ns_to_t(27), 2);
++	u8 tras		= max(ns_to_t(42), 3);
++	u16 trefi	= ns_to_t(3900) / 32;
++	u16 trfc	= ns_to_t(210);
++
++	u8 tmrw		= 10;
++	u8 tmrd		= 10;
++	u8 tmod		= 12;
++	u8 tcke		= 3;
++	u8 tcksrx	= 5;
++	u8 tcksre	= 5;
++	u8 tckesr	= 5;
++	u8 trasmax	= 24;
++
++	u8 tcl		= 6; /* CL 12 */
++	u8 tcwl		= 3; /* CWL 6 */
++	u8 t_rdata_en	= 5;
++	u8 wr_latency	= 2;
++
++	u32 tdinit0	= (200 * CONFIG_DRAM_CLK) + 1;		/* 200us */
++	u32 tdinit1	= (100 * CONFIG_DRAM_CLK) / 1000 + 1;	/* 100ns */
++	u32 tdinit2	= (11 * CONFIG_DRAM_CLK) + 1;		/* 11us */
++	u32 tdinit3	= (1 * CONFIG_DRAM_CLK) + 1;		/* 1us */
++
++	u8 twtp		= tcwl + 4 + twr + 1;
++	u8 twr2rd	= tcwl + 4 + 1 + twtr;
++	u8 trd2wr	= tcl + 4 + 5 - tcwl + 1;
++
++	/* set mode register */
++	writel(0xc3, &mctl_ctl->mr[1]);		/* nWR=8, BL8 */
++	writel(0x18, &mctl_ctl->mr[2]);		/* RL=12, WL=6 */
++	writel(0x2, &mctl_ctl->mr[3]);		/* 40 0hms PD/PU */
++
++	/* set DRAM timing */
++	writel(DRAMTMG0_TWTP(twtp) | DRAMTMG0_TFAW(tfaw) |
++	       DRAMTMG0_TRAS_MAX(trasmax) | DRAMTMG0_TRAS(tras),
++	       &mctl_ctl->dramtmg[0]);
++	writel(DRAMTMG1_TXP(txp) | DRAMTMG1_TRTP(trtp) | DRAMTMG1_TRC(trc),
++	       &mctl_ctl->dramtmg[1]);
++	writel(DRAMTMG2_TCWL(tcwl) | DRAMTMG2_TCL(tcl) |
++	       DRAMTMG2_TRD2WR(trd2wr) | DRAMTMG2_TWR2RD(twr2rd),
++	       &mctl_ctl->dramtmg[2]);
++	writel(DRAMTMG3_TMRW(tmrw) | DRAMTMG3_TMRD(tmrd) | DRAMTMG3_TMOD(tmod),
++	       &mctl_ctl->dramtmg[3]);
++	writel(DRAMTMG4_TRCD(trcd) | DRAMTMG4_TCCD(tccd) | DRAMTMG4_TRRD(trrd) |
++	       DRAMTMG4_TRP(trp), &mctl_ctl->dramtmg[4]);
++	writel(DRAMTMG5_TCKSRX(tcksrx) | DRAMTMG5_TCKSRE(tcksre) |
++	       DRAMTMG5_TCKESR(tckesr) | DRAMTMG5_TCKE(tcke),
++	       &mctl_ctl->dramtmg[5]);
++
++	/* set two rank timing */
++	clrsetbits_le32(&mctl_ctl->dramtmg[8], (0xff << 8) | (0xff << 0),
++			(0x66 << 8) | (0x10 << 0));
++
++	/* set PHY interface timing, write latency and read latency configure */
++	writel((0x2 << 24) | (t_rdata_en << 16) | (0x1 << 8) |
++	       (wr_latency << 0), &mctl_ctl->pitmg[0]);
++
++	/* set PHY timing, PTR0-2 use default */
++	writel(PTR3_TDINIT0(tdinit0) | PTR3_TDINIT1(tdinit1), &mctl_ctl->ptr[3]);
++	writel(PTR4_TDINIT2(tdinit2) | PTR4_TDINIT3(tdinit3), &mctl_ctl->ptr[4]);
++
++	/* set refresh timing */
++	writel(RFSHTMG_TREFI(trefi) | RFSHTMG_TRFC(trfc), &mctl_ctl->rfshtmg);
++}
+-- 
+2.34.1
+

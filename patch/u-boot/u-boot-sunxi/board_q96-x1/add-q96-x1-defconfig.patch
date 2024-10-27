@@ -1,0 +1,36 @@
+From 76a6e86fac756aca615bcb7964d7f53c3f7d1b75 Mon Sep 17 00:00:00 2001
+From: Lucas Grunenberg <lucas.grunenberg@gmail.com>
+Date: Tue, 2 Jul 2024 13:11:09 +0000
+Subject: [PATCH] Add Q96 X1 Defconfig
+
+---
+ configs/q96_x1_defconfig | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+ create mode 100644 configs/q96_x1_defconfig
+
+diff --git a/configs/q96_x1_defconfig b/configs/q96_x1_defconfig
+new file mode 100644
+index 0000000000..0806d480e6
+--- /dev/null
++++ b/configs/q96_x1_defconfig
+@@ -0,0 +1,17 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun8i-h3-q96-x1"
++CONFIG_SPL=y
++CONFIG_MACH_SUN8I_H3=y
++CONFIG_DRAM_CLK=264
++CONFIG_DRAM_ZQ=3750393
++CONFIG_DRAM_TYPE=7
++CONFIG_SUNXI_DRAM_LPDDR3_EMCP=y
++CONFIG_NR_DRAM_BANKS=1
++CONFIG_DRAM_ODT_EN=y
++CONFIG_MMC_SUNXI_SLOT_EXTRA=2
++# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++CONFIG_SUN8I_EMAC=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_OHCI_HCD=y
++# CONFIG_SYS_CLK_FREQ=480000000
+-- 
+2.34.1
+

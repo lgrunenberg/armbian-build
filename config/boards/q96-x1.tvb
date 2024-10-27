@@ -1,0 +1,11 @@
+# Allwinner H3 quad core 1GB RAM SoC Wi-Fi
+BOARD_NAME="Q96 X1"
+BOARDFAMILY="sun8i"
+BOARD_MAINTAINER=""
+BOOTCONFIG="q96_x1_defconfig"
+MODULES_LEGACY="g_serial"
+MODULES_CURRENT="g_serial"
+DEFAULT_OVERLAYS="usbhost2 usbhost3"
+SERIALCON="ttyS0,ttyGS0"
+KERNEL_TARGET="legacy"
+KERNEL_TEST_TARGET="current,edge"

@@ -1,0 +1,239 @@
+From d287334b4e33e1bec8a4d02b11a1f3ebece6b514 Mon Sep 17 00:00:00 2001
+From: Lucas Grunenberg <lucas.grunenberg@gmail.com>
+Date: Mon, 28 Oct 2024 13:29:44 +0100
+Subject: [PATCH] Add Q96 X1 Device Tree
+
+---
+ arch/arm/boot/dts/allwinner/Makefile          |   1 +
+ .../boot/dts/allwinner/sun8i-h3-q96-x1.dts    | 207 ++++++++++++++++++
+ 2 files changed, 208 insertions(+)
+ create mode 100644 arch/arm/boot/dts/allwinner/sun8i-h3-q96-x1.dts
+
+diff --git a/arch/arm/boot/dts/allwinner/Makefile b/arch/arm/boot/dts/allwinner/Makefile
+index 4247f19b1..e9022d9c6 100644
+--- a/arch/arm/boot/dts/allwinner/Makefile
++++ b/arch/arm/boot/dts/allwinner/Makefile
+@@ -308,6 +308,7 @@ dtb-$(CONFIG_MACH_SUN8I) += \
+ 	sun8i-h3-rervision-dvk.dtb \
+ 	sun8i-h3-zeropi.dtb \
+ 	sun8i-h3-emlid-neutis-n5h3-devboard.dtb \
++        sun8i-h3-q96-x1.dtb \
+ 	sun8i-r16-bananapi-m2m.dtb \
+ 	sun8i-r16-nintendo-nes-classic.dtb \
+ 	sun8i-r16-nintendo-super-nes-classic.dtb \
+diff --git a/arch/arm/boot/dts/allwinner/sun8i-h3-q96-x1.dts b/arch/arm/boot/dts/allwinner/sun8i-h3-q96-x1.dts
+new file mode 100644
+index 000000000..643335bec
+--- /dev/null
++++ b/arch/arm/boot/dts/allwinner/sun8i-h3-q96-x1.dts
+@@ -0,0 +1,207 @@
++/*
++ * Copyright (C) 2017 Jagan Teki <jteki@openedev.com>
++ * Copyright (C) 2018 Diego Rondini <diego.rondini@kynetics.com>
++ * Copyright (C) 2024 Lucas Grunenberg <lucas.grunenberg@gmail.com>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++
++#include "sun8i-h3.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	model = "Q96 X1";
++	compatible = "xunlong,q96-x1", "allwinner,sun8i-h3";
++
++	aliases {
++		serial0 = &uart0;
++                ethernet0 = &emac;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	connector {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			label = "q96:red:act";
++			gpios = <&pio 0 0xf GPIO_ACTIVE_LOW>;
++			default-state = "on";
++                        linux,default-trigger = "heartbeat";
++		};
++
++		led-1 {
++			label = "q96:blue:pwr";
++			gpios = <&r_pio 0 0xa GPIO_ACTIVE_LOW>;
++			default-state = "on";
++		};
++
++	};
++
++	reg_vcc3v3: vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
++       
++	reg_vcc_wifi: reg_vcc_wifi {
++		compatible = "regulator-fixed";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-name = "vcc-wifi";
++		gpio = <&r_pio 0 7 GPIO_ACTIVE_HIGH>;
++	        startup-delay-us = <70000>;
++		enable-active-high;
++	};
++
++	wifi_pwrseq: wifi_pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 0 0 GPIO_ACTIVE_LOW>; /* PA9 */
++		post-power-on-delay-ms = <200>;
++	};
++};
++
++&codec {
++	allwinner,audio-routing =
++		"Speaker", "LINEOUT";
++	status = "okay";
++};
++
++&de {
++	status = "okay";
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&emac {
++	phy-handle = <&int_mii_phy>;
++	phy-mode = "mii";
++	status = "okay";
++};
++
++&hdmi {
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&ir {
++	pinctrl-names = "default";
++	pinctrl-0 = <&r_ir_rx_pin>;
++	status = "okay";
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <4>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc_wifi>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	xr819: wifi@1 {
++		reg = <1>;
++		compatible = "xradio,xr819";
++		interrupt-parent = <&pio>;
++		interrupts = <0 11 IRQ_TYPE_EDGE_RISING>;	/* PL7 */
++		interrupt-names = "host-wake";
++	};
++};
++
++&mmc2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc2_8bit_pins>;
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pa_pins>;
++	status = "okay";
++};
++
++
++&usbphy {
++	status = "okay";
++};
+-- 
+2.34.1
+
